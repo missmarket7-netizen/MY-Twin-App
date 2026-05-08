@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "MyTwin: توأمك الرقمي",
+    "slug": "mytwin-ai",
+    "version": "5.2.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F0A1A"
+    },
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.soulsync.mytwin",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة."
+      }
+    },
+    "android": {
+      "package": "com.soulsync.mytwin",
+      "versionCode": 5,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F0A1A"
+      },
+      "permissions": [
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
