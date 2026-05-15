@@ -22,23 +22,24 @@ export default function Layout() {
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (session) {
           setAuth(session.user.id);
-        setToken(session.access_token);
+          setToken(session.access_token);
 
-        // تحقق إذا أتم الـ onboarding
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarded')
-          .eq('user_id', session.user.id)
-          .single();
+          // تحقق إذا أتم الـ onboarding
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarded')
+            .eq('user_id', session.user.id)
+            .single();
 
-        if (profile?.onboarded) {
-          router.replace('/chat');
+          if (profile?.onboarded) {
+            router.replace('/chat');
+          } else {
+            router.replace('/onboarding');
+          }
         } else {
-          router.replace('/onboarding');
+          router.replace('/');
         }
-      } else {
-        router.replace('/');
-      }
+      });
     });
 
     // تابع تغييرات الـ auth

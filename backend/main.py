@@ -18,7 +18,14 @@ from supabase import create_client, Client
 
 from twin_brain import TwinBrain
 from rate_limiter import limiter, rate_limit_exceeded_handler
-from token_limits import check_tok, BASE_TOK
+from token_limits import check_tok, check_notifications, BASE_TOK
+from product_recommender import (
+    extract_purchase_intent,
+    get_recommended_product,
+    format_product_suggestion,
+    log_product_impression,
+)
+from smart_notifications import should_send_notification, format_smart_notification
 
 load_dotenv()
 
@@ -131,13 +138,14 @@ async def chat(
     # ✅ جلب البروفايل
     profile = await get_profile(uid)
     tier = profile.get("tier", "free")
+    signup_date = profile.get("signup_date") or profile.get("created_at")
 
     # ✅ تقدير الـ tokens (رسالة المستخدم + آخر 10 رسائل)
     history_text = " ".join([m.get("content", "") for m in body.history[-10:]])
     estimated_tokens = len(body.message + history_text) // 4 + 150
 
     # ✅ التحقق من الحد اليومي
-    allowed, remaining = check_tok(uid, tier, estimated_tokens)
+    allowed, remaining = check_tok(uid, tier, estimated_tokens, signup_date)
     if not allowed:
         raise HTTPException(
             status_code=429,
@@ -162,6 +170,43 @@ async def chat(
     except Exception as e:
         logger.error(f"brain.respond error: {e}")
         raise HTTPException(status_code=500, detail="ai_error")
+
+    # ✅ إضافة توصية منتج ذكية إذا تم الكشف عن نية شراء
+    suggestion = None
+    try:
+        intent_category = extract_purchase_intent(body.message)
+        if intent_category:
+            product = get_recommended_product(intent_category)
+            if product:
+                suggestion = format_product_suggestion(product)
+                asyncio.create_task(run_async(
+                    lambda: log_product_impression(
+                        uid,
+                        str(product.get("id") or product.get("product_id") or "unknown"),
+                        f"{uid}-{datetime.utcnow().timestamp()}"
+                    )
+                ))
+    except Exception as e:
+        logger.warning(f"product suggestion skipped: {e}")
+
+    # ✅ جدولة إشعار ذكي عند الاستحقاق
+    if should_send_notification(profile.get("timezone", "UTC")):
+        can_notify, _ = check_notifications(uid, tier)
+        if can_notify and tier not in ["free", "free_trial_14d"]:
+            try:
+                asyncio.create_task(run_async(
+                    lambda: db.table("pending_notifications").insert({
+                        "user_id": uid,
+                        "message": format_smart_notification(
+                            profile.get("full_name", "صديقي"),
+                            bool(profile.get("goals")),
+                            0
+                        ),
+                        "created_at": datetime.utcnow().isoformat(),
+                    }).execute()
+                ))
+            except Exception as e:
+                logger.warning(f"notification queue failed: {e}")
 
     # ✅ تحديث daily_usage في الخلفية
     asyncio.create_task(run_async(
@@ -209,11 +254,11 @@ async def start_trial(
     if existing.data:
         raise HTTPException(status_code=409, detail="trial_already_used")
 
-    trial_end = (datetime.utcnow() + timedelta(days=7)).isoformat()
+    trial_end = (datetime.utcnow() + timedelta(days=14)).isoformat()
 
     await run_async(
         lambda: db.table("profiles").update({
-            "tier": "premium_trial",
+            "tier": "free_trial_14d",
             "trial_end": trial_end,
             "device_hash": device_hash,
             "phone": body.phone,
@@ -257,7 +302,16 @@ async def revenuecat_webhook(request: Request):
 
     if event_type in ["INITIAL_PURCHASE", "RENEWAL"]:
         product = event.get("product_id", "")
-        tier = "yearly" if "yearly" in product.lower() else "premium"
+        if "yearly" in product.lower():
+            tier = "yearly"
+        elif "pro" in product.lower():
+            tier = "pro"
+        elif "premium" in product.lower() and "trial" in product.lower():
+            tier = "premium_trial"
+        elif "premium" in product.lower():
+            tier = "premium"
+        else:
+            tier = "premium"
         await run_async(
             lambda: db.table("profiles").update({
                 "tier": tier,

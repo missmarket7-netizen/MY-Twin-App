@@ -13,7 +13,7 @@ export interface RelationshipDims {
   support: number;
 }
 
-export type Tier = 'free' | 'premium' | 'yearly';
+export type Tier = 'free' | 'free_trial_14d' | 'premium_trial' | 'premium' | 'pro' | 'yearly';
 export type Theme = 'dark' | 'light';
 
 interface TwinStore {
@@ -45,11 +45,13 @@ interface TwinStore {
 
   // Subscription
   tier: Tier;
-  updateTier: (tier: string) => void;
+  updateTier: (tier: Tier) => void;
 
   // Gamification
   points: number;
   addPoints: (pts: number) => void;
+  badges: string[];
+  addBadge: (badge: string) => void;
 
   // Haptic
   triggerHaptic: () => void;
@@ -97,6 +99,10 @@ export const useTwinStore = create<TwinStore>((set, get) => ({
   theme: 'dark',
   toggleTheme: () =>
     set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+
+  // Subscription
+  tier: 'free',
+  updateTier: (tier) => set({ tier }),
 
   // Gamification
   points: 0,
