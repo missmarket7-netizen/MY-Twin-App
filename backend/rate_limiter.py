@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 
 TIER_RATES = {
     "free": "10/minute",
+    "free_trial_14d": "20/minute",
+    "premium_trial": "120/minute",
     "premium": "60/minute",
     "pro": "200/minute",
     "yearly": "500/minute",

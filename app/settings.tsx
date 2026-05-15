@@ -4,6 +4,15 @@ import { useTwinStore } from '../store/useTwinStore';
 import { supabase } from '../lib/supabase';
 import { API } from '../lib/api';
 
+const TIER_LABELS: Record<string, string> = {
+  free: 'مجاني',
+  free_trial_14d: 'فترة مجانية 14 يوم',
+  premium_trial: 'تجربة بريميوم',
+  premium: 'Premium',
+  pro: 'Pro',
+  yearly: 'سنة',
+};
+
 export default function Settings() {
   const { tier, calmMode, toggleCalmMode, userId } = useTwinStore();
 
@@ -35,8 +44,7 @@ export default function Settings() {
                                                                                                                                                             <ScrollView style={styles.container}>
                                                                                                                                                                   <View style={styles.card}>
                                                                                                                                                                           <Text style={styles.title}>الإعدادات</Text>
-                                                                                                                                                                                  <Text style={styles.tier}>الخطة الحالية: {tier}</Text>
-
+                                                  <Text style={styles.tier}>الخطة الحالية: {TIER_LABELS[tier] ?? tier}</Text>
                                                                                                                                                                                           <View style={styles.row}>
                                                                                                                                                                                                     <Text style={styles.label}>🕊️ وضع الهدوء</Text>
                                                                                                                                                                                                               <Switch

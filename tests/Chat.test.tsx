@@ -1,5 +1,34 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+  launchImageLibraryAsync: jest.fn().mockResolvedValue({ cancelled: true }),
+}));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn(),
+}));
+
+jest.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signUp: jest.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null }),
+      signInWithPassword: jest.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null }),
+    },
+  },
+}));
+
+jest.mock('posthog-react-native', () => {
+  return jest.fn().mockImplementation(() => ({
+    capture: jest.fn(),
+    identify: jest.fn(),
+    reset: jest.fn(),
+  }));
+});
+
 import Chat from '../app/chat';
 import { useTwinStore } from '../store/useTwinStore';
 
@@ -28,7 +57,8 @@ describe('Chat Component', () => {
   };
 
   beforeEach(() => {
-    (useTwinStore as jest.Mock).mockReturnValue(mockStore);
+    const mockedUseTwinStore = useTwinStore as unknown as jest.Mock<any, any, any>;
+    mockedUseTwinStore.mockReturnValue(mockStore);
   });
 
   it('renders correctly', () => {
@@ -39,7 +69,7 @@ describe('Chat Component', () => {
   it('sends a message', async () => {
     const { getByPlaceholderText, getByText } = render(<Chat />);
     const input = getByPlaceholderText('اكتب رسالتك...');
-    const sendButton = getByText('إرسال');
+    const sendButton = getByText('↑');
 
     fireEvent.changeText(input, 'مرحبا');
     fireEvent.press(sendButton);

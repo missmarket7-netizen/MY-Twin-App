@@ -77,8 +77,11 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 
 // ✅ تحديد الـ tier من entitlements
 export const getTierFromCustomerInfo = (customerInfo: CustomerInfo): string => {
-  const entitlements = customerInfo.entitlements.active;
+  const entitlements = customerInfo.entitlements.active || {};
   if (entitlements['yearly']) return 'yearly';
+  if (entitlements['pro']) return 'pro';
+  if (entitlements['premium_trial']) return 'premium_trial';
   if (entitlements['premium']) return 'premium';
+  if (entitlements['free_trial_14d']) return 'free_trial_14d';
   return 'free';
 };

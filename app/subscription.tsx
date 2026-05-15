@@ -13,21 +13,32 @@ const PLANS: Array<{ id: Tier; name: string; price: string; features: string[] }
     name: 'Premium',
     price: '$19/شهر',
     features: [
-      '6000 توكن يومي',
-      '150 محادثة',
-      'ذاكرة 30 يوم',
-      'ردود صوتية متقدمة',
+      '2000 توكن يومي',
+      '100 محادثات يومية',
+      'وضع صوتي متقدم',
+      'ذكريات 30 يوم',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: '$89/6 أشهر',
+    features: [
+      '5000 توكن يومي',
+      '300 محادثة يومية',
+      'دعم مميز وإشعارات ذكية',
+      'تخزين طويل الأمد',
     ],
   },
   {
     id: 'yearly',
     name: 'Yearly',
-    price: '$180/سنة',
+    price: '$199/سنة',
     features: [
-      '20000 توكن يومي',
+      '10000 توكن يومي',
       'محادثات غير محدودة',
-      'ذاكرة دائمة',
-      'مزامنة سحابية كاملة',
+      'تذكير ذكي ودعم كامل',
+      'أقصى سرعة استجابات وصوتية',
     ],
   },
 ];
@@ -43,7 +54,11 @@ export default function Subscription() {
 
       // ✅ إصلاح: استخدام availablePackages من الـ offering مباشرة
       const packages = offerings?.availablePackages ?? [];
-      const pkg = packages.find((p: any) => p.identifier === planId);
+      const pkg = packages.find((p: any) =>
+        p.identifier === planId ||
+        p.product?.identifier?.toLowerCase().includes(planId) ||
+        p.package?.identifier === planId
+      );
 
       if (!pkg) {
         Alert.alert('غير متوفر', 'هذه الباقة غير متاحة مؤقتاً.');

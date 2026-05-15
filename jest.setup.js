@@ -1,1 +1,1 @@
-import 'jest-expo/jest-preset';
+import '@testing-library/jest-native/extend-expect';

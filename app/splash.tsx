@@ -23,7 +23,7 @@ export default function Splash() {
     ]).start();
 
     setTimeout(() => {
-      router.replace('/index');
+      router.replace('/');
     }, 3000);
   }, []);
 

@@ -1,11 +1,10 @@
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView
+  StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Share
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { FlatList as FlatListType } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as Sharing from 'expo-sharing';
 import { useTwinStore } from '../store/useTwinStore';
 import { askTwin } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -30,9 +29,11 @@ export default function Chat() {
   const shareMemory = async () => {
     if (chatHistory.length > 0) {
       const lastMessage = chatHistory[chatHistory.length - 1].content;
-      await Sharing.shareAsync('', { message: `ذكرى من توأمي: ${lastMessage}` });
+      await Share.share({ message: `ذكرى من توأمي: ${lastMessage}` });
     }
   };
+
+  const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -44,7 +45,14 @@ export default function Chat() {
       addMessage('user', `[صورة: ${uri}]`);
       // تحليل الصورة بـ Gemini Vision
       try {
-        const analysis = await askTwin(`حلل هذه الصورة: ${uri}`, twinName, bondLevel, relationshipDims, calmMode, []);
+        const analysis = await askTwin({
+          message: `حلل هذه الصورة: ${uri}`,
+          twin_name: twinName,
+          bond_level: bondLevel,
+          relationship_dims: relationshipDims,
+          calm_mode: calmMode,
+          chat_history: [],
+        });
         addMessage('twin', `تحليل الصورة: ${analysis.reply}`);
       } catch (e) {
         addMessage('twin', 'لم أتمكن من تحليل الصورة الآن.');
@@ -56,6 +64,8 @@ export default function Chat() {
     const message = input.trim();
     if (!message || loading) return;
 
+    const recentHistory = chatHistory.slice(-10);
+
     triggerHaptic();
     addMessage('user', message);
     setInput('');
@@ -64,14 +74,14 @@ export default function Chat() {
     try {
       track('message_sent', { bond_level: bondLevel, calm_mode: calmMode });
 
-      const res = await askTwin(
+      const res = await askTwin({
         message,
-        twinName,
-        bondLevel,
-        relationshipDims,
-        calmMode,
-        recentHistory
-      );
+        twin_name: twinName,
+        bond_level: bondLevel,
+        relationship_dims: relationshipDims,
+        calm_mode: calmMode,
+        chat_history: recentHistory,
+      });
 
       addMessage('twin', res.reply);
       updateBond(res.new_bond);

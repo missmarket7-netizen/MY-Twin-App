@@ -27,7 +27,7 @@ export default function Welcome() {
         title: 'توأمك ينتظرك!',
         body: 'كيف يومك اليوم؟ تعال نتحدث 💜',
       },
-      trigger: { hour: 9, minute: 0, repeats: true },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.CALENDAR, hour: 9, minute: 0, repeats: true },
     });
   }, []);
 
