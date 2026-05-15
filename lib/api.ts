@@ -1,11 +1,14 @@
 import axios, { AxiosError } from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CryptoJS from 'crypto-js';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 
   (Platform.OS === 'android' 
       ? 'http://10.0.2.2:8000' 
           : 'http://localhost:8000');
+
+const ENCRYPTION_KEY = 'your-secret-key'; // يجب وضعها في متغيرات البيئة
 
 export const API = axios.create({
   baseURL: BASE_URL,
@@ -14,6 +17,16 @@ export const API = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// تشفير البيانات الحساسة
+export const encryptData = (data: string) => {
+  return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+};
+
+export const decryptData = (encrypted: string) => {
+  const bytes = CryptoJS.AES.decrypt(encrypted, ENCRYPTION_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
 
 // Token Management
 let _token = '';

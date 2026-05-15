@@ -4,9 +4,12 @@ import {
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { FlatList as FlatListType } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
 import { useTwinStore } from '../store/useTwinStore';
 import { askTwin } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { track } from '../lib/analytics';
 import EmotionalAvatar from '../components/EmotionalAvatar';
 import BondTimeline from '../components/BondTimeline';
 import TypingIndicator from '../components/TypingIndicator';
@@ -24,6 +27,31 @@ export default function Chat() {
   const [emotion, setEmotion] = useState('neutral');
   const flatListRef = useRef<FlatListType>(null);
 
+  const shareMemory = async () => {
+    if (chatHistory.length > 0) {
+      const lastMessage = chatHistory[chatHistory.length - 1].content;
+      await Sharing.shareAsync('', { message: `ذكرى من توأمي: ${lastMessage}` });
+    }
+  };
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      addMessage('user', `[صورة: ${uri}]`);
+      // تحليل الصورة بـ Gemini Vision
+      try {
+        const analysis = await askTwin(`حلل هذه الصورة: ${uri}`, twinName, bondLevel, relationshipDims, calmMode, []);
+        addMessage('twin', `تحليل الصورة: ${analysis.reply}`);
+      } catch (e) {
+        addMessage('twin', 'لم أتمكن من تحليل الصورة الآن.');
+      }
+    }
+  };
+
   const send = async () => {
     const message = input.trim();
     if (!message || loading) return;
@@ -34,8 +62,7 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      // ✅ نبعت آخر 10 رسائل بس لتقليل الـ tokens
-      const recentHistory = chatHistory.slice(-10);
+      track('message_sent', { bond_level: bondLevel, calm_mode: calmMode });
 
       const res = await askTwin(
         message,
@@ -49,6 +76,8 @@ export default function Chat() {
       addMessage('twin', res.reply);
       updateBond(res.new_bond);
       setEmotion(res.emotion?.primary || 'neutral');
+
+      track('message_received', { emotion: res.emotion?.primary });
 
       // ✅ حفظ الرسائل في Supabase
       if (userId) {
@@ -105,6 +134,12 @@ export default function Chat() {
         {loading && <TypingIndicator />}
 
         <View style={s.inputRow}>
+          <TouchableOpacity onPress={shareMemory} style={s.shareButton}>
+            <Text style={s.shareIcon}>📤</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickImage} style={s.imageButton}>
+            <Text style={s.imageIcon}>📷</Text>
+          </TouchableOpacity>
           <TextInput
             style={s.textInput}
             value={input}
@@ -176,6 +211,25 @@ const s = StyleSheet.create({
     borderColor: '#2D1B4D',
     gap: 8,
   },
+  imageButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#3A2A5D',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#5A4A7D',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  imageIcon: { fontSize: 18 },
+  shareIcon: { fontSize: 18 },
   textInput: {
     flex: 1,
     backgroundColor: '#0F0A1A',

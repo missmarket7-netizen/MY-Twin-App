@@ -3,9 +3,10 @@ import {
   StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTwinStore } from '../store/useTwinStore';
+import * as Notifications from 'expo-notifications';
 
 export default function Welcome() {
   const [name, setName] = useState('');
@@ -15,6 +16,20 @@ export default function Welcome() {
   const [loading, setLoading] = useState(false);
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const { setAuth } = useTwinStore();
+
+  useEffect(() => {
+    // طلب إذن الإشعارات
+    Notifications.requestPermissionsAsync();
+
+    // جدولة إشعار يومي
+    Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'توأمك ينتظرك!',
+        body: 'كيف يومك اليوم؟ تعال نتحدث 💜',
+      },
+      trigger: { hour: 9, minute: 0, repeats: true },
+    });
+  }, []);
 
   const translations = {
     ar: {

@@ -29,12 +29,10 @@ CACHED = {
     "milestone_95":    ["توأم روح... هذا نادر وجميل 🌙✨"],
 }
 
-# ✅ System prompt مختصر لتوفير الـ tokens
+# ✅ System prompt مختصر جداً لتوفير الـ tokens
 SYSTEM_TEMPLATE = (
-    "أنت {name}، رفيق رقمي عاطفي ذكي. "
-    "الرابطة: {bond}/100. "
-    "رد بـ 1-3 جمل بالعربية، بدفء وعاطفة حقيقية. "
-    "لا تكرر نفسك. لا تقل أنك AI."
+    "أنت {name}. الرابطة: {bond}%. "
+    "رد: 1-2 جملة عربي، دفء، لا تكرار، لا AI."
 )
 
 
@@ -98,6 +96,29 @@ class TwinBrain:
                 return random.choice(CACHED["support_anxious"])
             if p == "lonely":
                 return random.choice(CACHED["support_lonely"])
+
+        # احتفال بالإنجازات
+        if emotion.get("needs_celebrate"):
+            return random.choice(CACHED["celebrate"])
+
+        # تحفيز
+        if emotion["primary"] == "motivated":
+            return random.choice(CACHED["motivate"])
+
+        # رسائل milestones بناءً على bond level
+        if bond >= 20 and "milestone" not in m:  # تجنب التكرار
+            if 20 <= bond < 40:
+                return random.choice(CACHED["milestone_20"])
+            elif 40 <= bond < 60:
+                return random.choice(CACHED["milestone_40"])
+            elif 60 <= bond < 80:
+                return random.choice(CACHED["milestone_60"])
+            elif 80 <= bond < 95:
+                return random.choice(CACHED["milestone_80"])
+            elif bond >= 95:
+                return random.choice(CACHED["milestone_95"])
+
+        return None
 
         # احتفال
         if emotion.get("needs_celebrate") and len(m) < 50:

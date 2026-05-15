@@ -47,6 +47,10 @@ interface TwinStore {
   tier: Tier;
   updateTier: (tier: string) => void;
 
+  // Gamification
+  points: number;
+  addPoints: (pts: number) => void;
+
   // Haptic
   triggerHaptic: () => void;
 }
@@ -68,7 +72,14 @@ export const useTwinStore = create<TwinStore>((set, get) => ({
     humor: 0,
     support: 0,
   },
-  updateBond: (newBond) => set({ bondLevel: newBond }),
+  updateBond: (newBond) => set((state) => {
+    const badges = [...state.badges];
+    if (newBond >= 40 && !badges.includes('friend')) badges.push('friend');
+    if (newBond >= 60 && !badges.includes('trusted')) badges.push('trusted');
+    if (newBond >= 80 && !badges.includes('soulmate')) badges.push('soulmate');
+    if (newBond >= 95 && !badges.includes('champion')) badges.push('champion');
+    return { bondLevel: newBond, badges };
+  }),
 
   // Chat — ✅ نحتفظ بآخر 50 رسالة بس في الـ store
   chatHistory: [],
@@ -87,9 +98,11 @@ export const useTwinStore = create<TwinStore>((set, get) => ({
   toggleTheme: () =>
     set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
-  // Subscription
-  tier: 'free',
-  updateTier: (tier) => set({ tier: tier as Tier }),
+  // Gamification
+  points: 0,
+  addPoints: (pts) => set((state) => ({ points: state.points + pts })),
+  badges: [],
+  addBadge: (badge) => set((state) => ({ badges: [...state.badges, badge] })),
 
   // Haptic
   triggerHaptic: () => {

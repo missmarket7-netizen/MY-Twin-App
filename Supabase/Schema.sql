@@ -12,21 +12,25 @@ create extension if not exists "pg_trgm";   -- لتحسين البحث النص�
 -- ══════════════════════════════════════════════════════════════
 create table if not exists public.profiles (
   id                uuid        primary key default uuid_generate_v4(),
-    user_id           uuid        not null unique references auth.users(id) on delete cascade,
-      twin_name         text        not null default '',
-        twin_gender       text        not null default 'female' check (twin_gender in ('female','male')),
-          bond_level        float       not null default 1.0 check (bond_level >= 0 and bond_level <= 100),
-            tier              text        not null default 'free' check (tier in ('free','premium_trial','premium','yearly')),
-              theme             text        not null default 'dark'  check (theme  in ('dark','light')),
-                relationship_dims jsonb       not null default '{"trust":0.1,"affection":0.1,"dependency":0.0}',
-                  last_active       timestamptz          default now(),
-                    onboarded         boolean     not null default false,
-                      device_hash       text,                -- لمنع تكرار التجربة المجانية
-                        phone             text,                -- لمنع تكرار التجربة المجانية
-                          trial_end         timestamptz,         -- تاريخ انتهاء التجربة
-                            created_at        timestamptz not null default now(),
-                              updated_at        timestamptz not null default now()
-                              );
+  user_id           uuid        not null unique references auth.users(id) on delete cascade,
+  twin_name         text        not null default '',
+  twin_gender       text        not null default 'female' check (twin_gender in ('female','male')),
+  bond_level        float       not null default 1.0 check (bond_level >= 0 and bond_level <= 100),
+  tier              text        not null default 'free' check (tier in ('free','free_trial_14d','premium_trial','premium','pro','yearly')),
+  theme             text        not null default 'dark'  check (theme  in ('dark','light')),
+  relationship_dims jsonb       not null default '{"trust":0.1,"affection":0.1,"dependency":0.0}',
+  last_active       timestamptz          default now(),
+  onboarded         boolean     not null default false,
+  device_hash       text,
+  phone             text,
+  trial_end         timestamptz,
+  voice_provider    text        default 'google' check (voice_provider in ('disabled','google','amazon','elevenlabs')),
+  notification_enabled boolean  not null default true,
+  quiet_hours_start integer     default 22,
+  quiet_hours_end   integer     default 8,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
 
                               alter table public.profiles enable row level security;
 
@@ -248,7 +252,59 @@ create table if not exists public.profiles (
                                                                                                                                                                                                         create trigger goal_auto_complete before update on public.goals
                                                                                                                                                                                                           for each row execute procedure public.auto_complete_goal();
 
+
 -- ══════════════════════════════════════════════════════════════
+-- 11. المنتجات والترشيحات (PRODUCTS & RECOMMENDATIONS)
+-- ══════════════════════════════════════════════════════════════
+create table if not exists public.products (
+  id              uuid        primary key default uuid_generate_v4(),
+  name            text        not null,
+  description     text        not null,
+  category        text        not null check (category in ('health','productivity','learning','entertainment','lifestyle')),
+  affiliate_link  text        not null,
+  image_url       text,
+  active          boolean     not null default true,
+  created_at      timestamptz not null default now()
+);
+
+alter table public.products enable row level security;
+create policy "products_select_all" on public.products for select using (true);  -- اقرأ فقط عام
+
+-- ══════════════════════════════════════════════════════════════
+-- 12. الإشعارات المعلقة (PENDING NOTIFICATIONS)
+-- ══════════════════════════════════════════════════════════════
+create table if not exists public.pending_notifications (
+  id              uuid        primary key default uuid_generate_v4(),
+  user_id         uuid        not null references auth.users(id) on delete cascade,
+  title           text        not null,
+  body            text        not null,
+  scheduled_at    timestamptz not null,
+  sent_at         timestamptz,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists pending_notifications_user_scheduled on public.pending_notifications(user_id, scheduled_at);
+
+alter table public.pending_notifications enable row level security;
+create policy "notifications_own" on public.pending_notifications
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ══════════════════════════════════════════════════════════════
+-- 13. انطباعات المنتجات (PRODUCT IMPRESSIONS)
+-- ══════════════════════════════════════════════════════════════
+create table if not exists public.product_impressions (
+  id              uuid        primary key default uuid_generate_v4(),
+  user_id         uuid        not null references auth.users(id) on delete cascade,
+  product_id      uuid        not null references public.products(id) on delete cascade,
+  message_id      text,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists impressions_user_product on public.product_impressions(user_id, product_id);
+
+alter table public.product_impressions enable row level security;
+create policy "impressions_own" on public.product_impressions
+  using (auth.uid() = user_id);
 -- 11. تحسينات الذاكرة العاطفية (EMOTIONAL MEMORY ENHANCEMENTS)
 -- ══════════════════════════════════════════════════════════════
 -- تحديث جدول memories لإضافة بيانات عاطفية متقدمة

@@ -14,10 +14,14 @@ export default function Layout() {
     if (initialized.current) return;
     initialized.current = true;
 
-    // تحقق من الجلسة الحالية
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        setAuth(session.user.id);
+    // ابدأ بـ splash
+    router.replace('/splash');
+
+    // تحقق من الجلسة الحالية بعد splash
+    setTimeout(() => {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session) {
+          setAuth(session.user.id);
         setToken(session.access_token);
 
         // تحقق إذا أتم الـ onboarding

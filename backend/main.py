@@ -74,12 +74,19 @@ async def get_current_user(authorization: str = Header(...)) -> str:
 
 
 async def get_profile(uid: str) -> dict:
-    """جلب بروفايل المستخدم من Supabase."""
+    """جلب بروفايل المستخدم من Supabase مع cache."""
+    cache_key = f"profile:{uid}"
+    cached = get(cache_key)
+    if cached:
+        return cached
+
     try:
         r = await run_async(
             lambda: db.table("profiles").select("*").eq("user_id", uid).single().execute()
         )
-        return r.data or {}
+        profile = r.data or {}
+        set(cache_key, profile, 600)  # cache لـ 10 دقائق
+        return profile
     except Exception:
         return {}
 

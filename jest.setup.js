@@ -1,0 +1,1 @@
+import 'jest-expo/jest-preset';
