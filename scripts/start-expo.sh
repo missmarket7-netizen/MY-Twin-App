@@ -8,6 +8,10 @@ if command -v lsof >/dev/null 2>&1 && lsof -i :8081 >/dev/null 2>&1; then
   echo "Port 8081 is busy; using 8082 instead."
   PORT=8082
 fi
+if command -v lsof >/dev/null 2>&1 && lsof -i :$PORT >/dev/null 2>&1; then
+  echo "Port $PORT is busy; using 8083 instead."
+  PORT=8083
+fi
 
 if npx expo start --tunnel --clear --port "$PORT"; then
   echo "Expo started with tunnel on port $PORT."
