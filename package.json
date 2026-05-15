@@ -5,8 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "start:fallback": "./scripts/start-expo.sh",
-    "start:lan": "./scripts/start-lan.sh",
+    "start:fallback": "bash ./scripts/start-expo.sh",
+    "start:lan": "bash ./scripts/start-lan.sh",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
