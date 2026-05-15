@@ -246,4 +246,5 @@ class TwinBrain:
         if ix.get("seeks_comfort") and d["trust"] > 0.5:
             d["dependency"] = min(d["dependency"] + 0.015, 0.65)
 
-        return d
+            return d
+            
