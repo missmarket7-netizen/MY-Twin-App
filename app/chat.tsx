@@ -160,14 +160,14 @@ export default function Chat() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F0A1A' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1A1226',
+    backgroundColor: '#F8F6F2',
     borderBottomWidth: 1,
     borderColor: '#2D1B4D',
   },
@@ -186,7 +186,7 @@ const s = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   twinBubble: {
-    backgroundColor: '#1E1433',
+    backgroundColor: '#F3F0FF',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
@@ -200,7 +200,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     paddingBottom: 16,
-    backgroundColor: '#1A1226',
+    backgroundColor: '#F8F6F2',
     borderTopWidth: 1,
     borderColor: '#2D1B4D',
     gap: 8,
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   shareIcon: { fontSize: 18 },
   textInput: {
     flex: 1,
-    backgroundColor: '#0F0A1A',
+    backgroundColor: '#FFFFFF',
     color: '#FFF',
     paddingHorizontal: 16,
     paddingTop: 12,

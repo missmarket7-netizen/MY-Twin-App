@@ -1,22 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Trying to start Expo with tunnel (ngrok)..."
+# ═══════════════════════════════════════════════════════════════
+#  MyTwin – Start Expo (Tunnel > LAN)
+#  يُشغّل Expo مع tunnel، وفي حال فشل ngrok يتراجع إلى LAN.
+# ═══════════════════════════════════════════════════════════════
 
+# دالة لفحص توفر منفذ
+port_free() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -i ":$1" >/dev/null 2>&1 && return 1 || return 0
+  fi
+  return 0  # نفترض التوفر إذا لم نستطع الفحص
+}
+
+# اختيار أول منفذ متاح بين 8081 و 8083
 PORT=8081
-if command -v lsof >/dev/null 2>&1 && lsof -i :8081 >/dev/null 2>&1; then
-  echo "Port 8081 is busy; using 8082 instead."
-  PORT=8082
-fi
-if command -v lsof >/dev/null 2>&1 && lsof -i :$PORT >/dev/null 2>&1; then
-  echo "Port $PORT is busy; using 8083 instead."
-  PORT=8083
-fi
+for p in 8081 8082 8083; do
+  if port_free "$p"; then
+    PORT="$p"
+    break
+  fi
+done
 
-if npx expo start --tunnel --clear --port "$PORT"; then
-  echo "Expo started with tunnel on port $PORT."
-  exit 0
+echo "🚀 Trying to start Expo with tunnel (ngrok) on port $PORT..."
+echo "   (If tunnel fails, will fall back to LAN automatically)"
+
+# محاولة tunnel أولاً، مع fallback إلى LAN
+if npx expo start --tunnel --clear --port "$PORT" 2>&1; then
+  echo "✅ Expo started with tunnel on port $PORT."
 else
-  echo "Tunnel failed or exited. Falling back to LAN on port $PORT..."
+  echo "⚠️  Tunnel failed or exited. Falling back to LAN on port $PORT..."
   npx expo start --lan --clear --port "$PORT"
 fi

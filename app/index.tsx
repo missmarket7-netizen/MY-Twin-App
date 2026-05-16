@@ -1,12 +1,27 @@
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert
+  StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, Image
 } from 'react-native';
 import { router } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTwinStore } from '../store/useTwinStore';
-import * as Notifications from 'expo-notifications';
+
+// الشعار الرسمي من مجلد assets
+const APP_LOGO = require('../assets/logo.png');
+
+// لوحة الألوان المتناسقة مع الشعار
+const COLORS = {
+  bg: '#FFFFFF',
+  text: '#F8F6F2',
+  subtext: '#6B5B8A',
+  primary: '#5B4AE0',
+  primaryLight: '#F3F0FF',
+  inputBg: '#F8F6F2',
+  inputBorder: '#E0D9F5',
+  placeholder: '#A09BB5',
+  white: '#FFFFFF',
+};
 
 export default function Welcome() {
   const [name, setName] = useState('');
@@ -16,20 +31,6 @@ export default function Welcome() {
   const [loading, setLoading] = useState(false);
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const { setAuth } = useTwinStore();
-
-  useEffect(() => {
-    // طلب إذن الإشعارات
-    Notifications.requestPermissionsAsync();
-
-    // جدولة إشعار يومي
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'توأمك ينتظرك!',
-        body: 'كيف يومك اليوم؟ تعال نتحدث 💜',
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.CALENDAR, hour: 9, minute: 0, repeats: true },
-    });
-  }, []);
 
   const translations = {
     ar: {
@@ -81,50 +82,126 @@ export default function Welcome() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
-        <View style={s.langRow}>
-          <TouchableOpacity style={[s.langBtn, lang === 'ar' && s.langActive]} onPress={() => setLang('ar')}>
-            <Text style={[s.langText, lang === 'ar' && s.langActiveText]}>AR</Text>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        {/* مبدل اللغة */}
+        <View style={styles.langRow}>
+          <TouchableOpacity style={[styles.langBtn, lang === 'ar' && styles.langActive]} onPress={() => setLang('ar')}>
+            <Text style={[styles.langText, lang === 'ar' && styles.langActiveText]}>AR</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.langBtn, lang === 'en' && s.langActive]} onPress={() => setLang('en')}>
-            <Text style={[s.langText, lang === 'en' && s.langActiveText]}>EN</Text>
+          <TouchableOpacity style={[styles.langBtn, lang === 'en' && styles.langActive]} onPress={() => setLang('en')}>
+            <Text style={[styles.langText, lang === 'en' && styles.langActiveText]}>EN</Text>
           </TouchableOpacity>
         </View>
-        <View style={s.logoBox}>
-          <Text style={s.logoEmoji}>🧬</Text>
-          <Text style={s.logoText}>{t.title}</Text>
-          <Text style={s.logoSub}>{t.sub}</Text>
+
+        {/* الشعار الرسمي */}
+        <View style={styles.logoBox}>
+          <Image source={APP_LOGO} style={styles.logoImage} resizeMode="contain" />
+          <Text style={styles.logoTitle}>{t.title}</Text>
+          <Text style={styles.logoSub}>{t.sub}</Text>
         </View>
-        <TextInput style={s.input} placeholder={t.name} placeholderTextColor="#999" value={name} onChangeText={setName} />
-        <TextInput style={s.input} placeholder={t.phone} placeholderTextColor="#999" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <TextInput style={s.input} placeholder={t.email} placeholderTextColor="#999" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-        <TextInput style={s.input} placeholder={t.pass} placeholderTextColor="#999" value={password} onChangeText={setPassword} secureTextEntry />
-        <TouchableOpacity style={s.btn} onPress={signUp} disabled={loading}>
-          <Text style={s.btnText}>{loading ? '...' : t.signup}</Text>
+
+        {/* حقول الإدخال */}
+        <TextInput style={styles.input} placeholder={t.name} placeholderTextColor={COLORS.placeholder} value={name} onChangeText={setName} />
+        <TextInput style={styles.input} placeholder={t.phone} placeholderTextColor={COLORS.placeholder} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <TextInput style={styles.input} placeholder={t.email} placeholderTextColor={COLORS.placeholder} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+        <TextInput style={styles.input} placeholder={t.pass} placeholderTextColor={COLORS.placeholder} value={password} onChangeText={setPassword} secureTextEntry />
+
+        {/* أزرار المصادقة */}
+        <TouchableOpacity style={styles.btnPrimary} onPress={signUp} disabled={loading} activeOpacity={0.8}>
+          <Text style={styles.btnPrimaryText}>{loading ? '...' : t.signup}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.btn, s.btnOutline]} onPress={signIn} disabled={loading}>
-          <Text style={[s.btnText, s.btnOutlineText]}>{loading ? '...' : t.signin}</Text>
+        <TouchableOpacity style={styles.btnOutline} onPress={signIn} disabled={loading} activeOpacity={0.8}>
+          <Text style={styles.btnOutlineText}>{loading ? '...' : t.signin}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#F8F6F2', justifyContent: 'center', padding: 24 },
-  langRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16, gap: 8 },
-  langBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED' },
-  langActive: { backgroundColor: '#7C3AED' },
-  langText: { color: '#7C3AED', fontWeight: '600' },
-  langActiveText: { color: '#FFF' },
-  logoBox: { alignItems: 'center', marginBottom: 32 },
-  logoEmoji: { fontSize: 64, marginBottom: 8 },
-  logoText: { fontSize: 36, fontWeight: '800', color: '#1A1226', letterSpacing: 2 },
-  logoSub: { fontSize: 15, color: '#6B5B8A', marginTop: 4 },
-  input: { backgroundColor: '#FFF', color: '#1A1226', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#DDD', fontSize: 15 },
-  btn: { backgroundColor: '#7C3AED', padding: 15, borderRadius: 12, marginBottom: 10 },
-  btnText: { color: '#FFF', textAlign: 'center', fontWeight: '700', fontSize: 16 },
-  btnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#7C3AED' },
-  btnOutlineText: { color: '#7C3AED' },
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 24,
+    gap: 8,
+  },
+  langBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  langActive: {
+    backgroundColor: COLORS.primary,
+  },
+  langText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  langActiveText: {
+    color: COLORS.white,
+  },
+  logoBox: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 16,
+  },
+  logoTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: 2,
+  },
+  logoSub: {
+    fontSize: 15,
+    color: COLORS.subtext,
+    marginTop: 4,
+  },
+  input: {
+    backgroundColor: COLORS.inputBg,
+    color: COLORS.text,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    fontSize: 15,
+  },
+  btnPrimary: {
+    backgroundColor: COLORS.primary,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  btnPrimaryText: {
+    color: COLORS.white,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  btnOutline: {
+    backgroundColor: 'transparent',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  btnOutlineText: {
+    color: COLORS.primary,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 });

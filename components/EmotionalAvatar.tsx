@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet } from 'react-native';
+import { useTwinStore } from '../store/useTwinStore';
 
 const EMOJIS: Record<string, string> = {
   happy: '😊',
@@ -61,8 +62,13 @@ export default function EmotionalAvatar({ emotion, size = 60 }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#2D1B4D',
+    backgroundColor: '#F3F0FF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#5B4AE0',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
 });

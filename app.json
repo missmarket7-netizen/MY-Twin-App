@@ -2,14 +2,14 @@
   "expo": {
     "name": "MyTwin: توأمك الرقمي",
     "slug": "mytwin-ai",
-    "version": "5.2.1",
+    "version": "5.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F0A1A"
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": [
       "assets/**/*"
@@ -18,24 +18,54 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.soulsync.mytwin",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة."
+        "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة وتحليل المشاعر.",
+        "NSLocationWhenInUseUsageDescription": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم."
       }
     },
     "android": {
       "package": "com.soulsync.mytwin",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0F0A1A"
+        "backgroundColor": "#FFFFFF"
       },
       "permissions": [
         "RECORD_AUDIO",
         "VIBRATE",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "يحتاج التطبيق للميكروفون للمحادثات الصوتية."
+        }
+      ],
+      "expo-speech",
+      "expo-haptics",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5B4AE0"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم.",
+          "locationWhenInUsePermission": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم."
+        }
+      ],
+      [
+        "sentry-expo",
+        {
+          "url": "https://sentry.io"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

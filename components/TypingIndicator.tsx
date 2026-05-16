@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 
+/**
+ * TypingIndicator – ثلاث نقاط متحركة تظهر عندما يكتب التوأم الرقمي.
+ */
 export default function TypingIndicator() {
   const dots = [
     useRef(new Animated.Value(0)).current,
@@ -66,7 +69,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E0AAFF',
+    backgroundColor: '#5B4AE0',
     marginHorizontal: 4,
+    opacity: 0.8,
   },
 });

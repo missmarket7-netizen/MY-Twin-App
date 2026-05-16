@@ -14,32 +14,27 @@ export default function Layout() {
     if (initialized.current) return;
     initialized.current = true;
 
-    // ابدأ بـ splash
-    router.replace('/splash');
+    // تحقق من الجلسة الحالية
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        setAuth(session.user.id);
+        setToken(session.access_token);
 
-    // تحقق من الجلسة الحالية بعد splash
-    setTimeout(() => {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session) {
-          setAuth(session.user.id);
-          setToken(session.access_token);
+        // تحقق إذا أتم الـ onboarding
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded')
+          .eq('user_id', session.user.id)
+          .single();
 
-          // تحقق إذا أتم الـ onboarding
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('onboarded')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (profile?.onboarded) {
-            router.replace('/chat');
-          } else {
-            router.replace('/onboarding');
-          }
+        if (profile?.onboarded) {
+          router.replace('/chat');
         } else {
-          router.replace('/');
+          router.replace('/onboarding');
         }
-      });
+      } else {
+        router.replace('/');
+      }
     });
 
     // تابع تغييرات الـ auth
@@ -63,7 +58,7 @@ export default function Layout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#0F0A1A' },
+          contentStyle: { backgroundColor: '#FFFFFF' },
           animation: 'fade',
         }}
       >

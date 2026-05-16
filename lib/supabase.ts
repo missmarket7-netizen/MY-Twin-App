@@ -1,3 +1,7 @@
+/**
+ * MyTwin – Supabase Client
+ * عميل Supabase المُهيأ مع التخزين المحلي واستمرارية الجلسة.
+ */
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
