@@ -2,8 +2,7 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Share
 } from 'react-native';
-import { useState, useRef } from 'react';
-import { FlatList as FlatListType } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useTwinStore } from '../store/useTwinStore';
 import { askTwin } from '../lib/api';
@@ -24,12 +23,16 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [emotion, setEmotion] = useState('neutral');
-  const flatListRef = useRef<FlatListType>(null);
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, [chatHistory]);
 
   const shareMemory = async () => {
-    if (chatHistory.length > 0) {
-      const lastMessage = chatHistory[chatHistory.length - 1].content;
-      await Share.share({ message: `ذكرى من توأمي: ${lastMessage}` });
+    const lastTwin = [...chatHistory].reverse().find(m => m.role === 'twin');
+    if (lastTwin) {
+      await Share.share({ message: `💬 ${lastTwin.content}` });
     }
   };
 
@@ -39,32 +42,14 @@ export default function Chat() {
       allowsEditing: true,
       quality: 1,
     });
-
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      addMessage('user', `[صورة: ${uri}]`);
-      // تحليل الصورة بـ Gemini Vision
-      try {
-        const analysis = await askTwin({
-          message: `حلل هذه الصورة: ${uri}`,
-          twin_name: twinName,
-          bond_level: bondLevel,
-          relationship_dims: relationshipDims,
-          calm_mode: calmMode,
-          chat_history: [],
-        });
-        addMessage('twin', `تحليل الصورة: ${analysis.reply}`);
-      } catch (e) {
-        addMessage('twin', 'لم أتمكن من تحليل الصورة الآن.');
-      }
+      addMessage('user', `[مشاركة صورة]`);
     }
   };
 
   const send = async () => {
     const message = input.trim();
     if (!message || loading) return;
-
-    const recentHistory = chatHistory.slice(-10);
 
     triggerHaptic();
     addMessage('user', message);
@@ -74,37 +59,36 @@ export default function Chat() {
     try {
       track('message_sent', { bond_level: bondLevel, calm_mode: calmMode });
 
-      const res = await askTwin({
+      // ✅ تمرير relationshipDims مباشرة بدون تحويل
+      const res = await askTwin(
         message,
-        twin_name: twinName,
-        bond_level: bondLevel,
-        relationship_dims: relationshipDims,
-        calm_mode: calmMode,
-        chat_history: recentHistory,
-      });
+        twinName,
+        bondLevel,
+        relationshipDims,
+        calmMode
+      );
 
       addMessage('twin', res.reply);
-      updateBond(res.new_bond);
-      setEmotion(res.emotion?.primary || 'neutral');
+      updateBond(res.new_bond ?? bondLevel);
+      setEmotion(res?.emotion?.primary ?? 'neutral');
 
-      track('message_received', { emotion: res.emotion?.primary });
+      track('message_received', { emotion: res?.emotion?.primary });
 
-      // ✅ حفظ الرسائل في Supabase
       if (userId) {
-        await supabase.from('messages').insert([
-          { user_id: userId, role: 'user', content: message },
-          { user_id: userId, role: 'twin', content: res.reply },
+        const { error } = await supabase.from('messages').insert([
+          { user_id: userId, sender: 'user', content: message },
+          { user_id: userId, sender: 'twin', content: res.reply },
         ]);
+        if (error) console.log('Supabase insert error:', error.message);
       }
     } catch (e: any) {
-      // ✅ رسائل خطأ أوضح
-      const errMsg = e?.response?.data?.detail === 'token_limit'
+      const detail = e?.response?.data?.detail;
+      const errMsg = detail === 'token_limit'
         ? 'وصلت للحد اليومي من الرسائل 💜 جرب غداً أو قم بالترقية'
         : 'حدث خطأ... حاول مجدداً';
       addMessage('twin', errMsg);
     } finally {
       setLoading(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
 
@@ -137,7 +121,6 @@ export default function Chat() {
             </View>
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           style={s.list}
         />
 
@@ -159,6 +142,7 @@ export default function Chat() {
             multiline
             maxLength={2000}
             returnKeyType="send"
+            blurOnSubmit={false}
             onSubmitEditing={send}
           />
           <TouchableOpacity

@@ -1,9 +1,4 @@
-import os
-import asyncio
-import logging
-import hmac
-import hashlib
-import json
+import os, asyncio, logging, hmac, hashlib, json
 from datetime import datetime, timedelta, date
 from typing import Optional
 
@@ -18,14 +13,24 @@ from supabase import create_client, Client
 
 from twin_brain import TwinBrain
 from rate_limiter import limiter, rate_limit_exceeded_handler
-from token_limits import check_tok, check_notifications, BASE_TOK
-from product_recommender import (
-    extract_purchase_intent,
-    get_recommended_product,
-    format_product_suggestion,
-    log_product_impression,
-)
-from smart_notifications import should_send_notification, format_smart_notification
+from limits import check_tok, BASE_TOK
+from cache import get as cache_get, set as cache_set
+
+# استيراد اختياري للميزات المتقدمة
+try:
+    from product_recommender import (
+        extract_purchase_intent, get_recommended_product,
+        format_product_suggestion, log_product_impression,
+    )
+    HAS_PRODUCT_RECOMMENDER = True
+except ImportError:
+    HAS_PRODUCT_RECOMMENDER = False
+
+try:
+    from smart_notifications import should_send_notification, format_smart_notification
+    HAS_SMART_NOTIFICATIONS = True
+except ImportError:
+    HAS_SMART_NOTIFICATIONS = False
 
 load_dotenv()
 
@@ -60,8 +65,8 @@ app.add_middleware(
 )
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
-async def run_async(fn):
-    return await asyncio.get_event_loop().run_in_executor(None, fn)
+async def run_async(fn, *args):
+    return await asyncio.get_event_loop().run_in_executor(None, fn, *args)
 
 
 async def get_current_user(authorization: str = Header(...)) -> str:
@@ -83,7 +88,7 @@ async def get_current_user(authorization: str = Header(...)) -> str:
 async def get_profile(uid: str) -> dict:
     """جلب بروفايل المستخدم من Supabase مع cache."""
     cache_key = f"profile:{uid}"
-    cached = get(cache_key)
+    cached = cache_get(cache_key)
     if cached:
         return cached
 
@@ -92,10 +97,24 @@ async def get_profile(uid: str) -> dict:
             lambda: db.table("profiles").select("*").eq("user_id", uid).single().execute()
         )
         profile = r.data or {}
-        set(cache_key, profile, 600)  # cache لـ 10 دقائق
+        cache_set(cache_key, profile, 600)
         return profile
     except Exception:
         return {}
+
+
+async def get_daily_usage(uid: str) -> int:
+    """التحقق من الاستخدام اليومي من قاعدة البيانات."""
+    today = date.today().isoformat()
+    try:
+        res = await run_async(
+            lambda: db.table("daily_usage").select("messages").eq("user_id", uid).eq("date", today).limit(1).execute()
+        )
+        if res.data and len(res.data) > 0:
+            return res.data[0].get("messages", 0)
+    except Exception:
+        pass
+    return 0
 
 
 # ─── Pydantic Models ─────────────────────────────────────────────────────────
@@ -114,8 +133,6 @@ class ChatRequest(BaseModel):
 
 
 class TrialRequest(BaseModel):
-    email: str = Field(..., max_length=254)
-    phone: str = Field(..., max_length=20)
     device_id: str = Field(..., max_length=100)
 
 
@@ -128,7 +145,6 @@ async def health():
 @app.post("/api/chat")
 @limiter.limit("30/minute")
 async def chat(
-    request: Request,
     body: ChatRequest,
     uid: str = Depends(get_current_user),
     x_calm_mode: str = Header(default="false"),
@@ -138,23 +154,32 @@ async def chat(
     # ✅ جلب البروفايل
     profile = await get_profile(uid)
     tier = profile.get("tier", "free")
-    signup_date = profile.get("signup_date") or profile.get("created_at")
+    signup_date = profile.get("signup_date") or profile.get("created_at", datetime.utcnow().isoformat())
+    trial_start = profile.get("trial_start")
 
-    # ✅ تقدير الـ tokens (رسالة المستخدم + آخر 10 رسائل)
+    # ✅ تقدير الـ tokens
     history_text = " ".join([m.get("content", "") for m in body.history[-10:]])
     estimated_tokens = len(body.message + history_text) // 4 + 150
 
-    # ✅ التحقق من الحد اليومي
-    allowed, remaining = check_tok(uid, tier, estimated_tokens, signup_date)
+    # ✅ التحقق من الحد اليومي (بالشكل الصحيح)
+    allowed, remaining = check_tok(uid, tier, estimated_tokens, signup_date, trial_start)
     if not allowed:
-        raise HTTPException(
-            status_code=429,
-            detail="token_limit",
-        )
+        # احتياط: تحقق من قاعدة البيانات
+        used = await get_daily_usage(uid)
+        limit = BASE_TOK.get(tier, 3000)
+        if used + estimated_tokens > limit:
+            raise HTTPException(
+                status_code=429,
+                detail="token_limit",
+            )
+        remaining = limit - used - estimated_tokens
 
     # ✅ جلب الذكريات
-    from memory_engine import get_mems
-    memories = await run_async(lambda: get_mems(uid, body.message, days=7, lim=5))
+    try:
+        from memory_engine import get_mems
+        memories = await run_async(lambda: get_mems(uid, body.message, days=7, lim=5))
+    except ImportError:
+        memories = []
 
     # ✅ توليد الرد
     try:
@@ -171,28 +196,28 @@ async def chat(
         logger.error(f"brain.respond error: {e}")
         raise HTTPException(status_code=500, detail="ai_error")
 
-    # ✅ إضافة توصية منتج ذكية إذا تم الكشف عن نية شراء
+    # ✅ إضافة توصية منتج ذكية (اختياري)
     suggestion = None
-    try:
-        intent_category = extract_purchase_intent(body.message)
-        if intent_category:
-            product = get_recommended_product(intent_category)
-            if product:
-                suggestion = format_product_suggestion(product)
-                asyncio.create_task(run_async(
-                    lambda: log_product_impression(
-                        uid,
-                        str(product.get("id") or product.get("product_id") or "unknown"),
-                        f"{uid}-{datetime.utcnow().timestamp()}"
-                    )
-                ))
-    except Exception as e:
-        logger.warning(f"product suggestion skipped: {e}")
+    if HAS_PRODUCT_RECOMMENDER:
+        try:
+            intent_category = extract_purchase_intent(body.message)
+            if intent_category:
+                product = get_recommended_product(intent_category)
+                if product:
+                    suggestion = format_product_suggestion(product)
+                    asyncio.create_task(run_async(
+                        lambda: log_product_impression(
+                            uid,
+                            str(product.get("id") or product.get("product_id") or "unknown"),
+                            f"{uid}-{datetime.utcnow().timestamp()}"
+                        )
+                    ))
+        except Exception as e:
+            logger.warning(f"product suggestion skipped: {e}")
 
-    # ✅ جدولة إشعار ذكي عند الاستحقاق
-    if should_send_notification(profile.get("timezone", "UTC")):
-        can_notify, _ = check_notifications(uid, tier)
-        if can_notify and tier not in ["free", "free_trial_14d"]:
+    # ✅ إشعار ذكي (اختياري)
+    if HAS_SMART_NOTIFICATIONS and should_send_notification(profile.get("timezone", "UTC")):
+        if tier not in ["free", "free_trial_14d"]:
             try:
                 asyncio.create_task(run_async(
                     lambda: db.table("pending_notifications").insert({
@@ -218,22 +243,29 @@ async def chat(
 
     # ✅ حفظ ذاكرة لو الرسالة مهمة
     if len(body.message) > 20 and result.get("importance", 0) > 0.6:
-        from memory_engine import store_mem
-        asyncio.create_task(run_async(
-            lambda: store_mem(
-                uid,
-                body.message,
-                imp=result.get("importance", 0.5),
-                tag=result.get("emotion", {}).get("primary", "neutral"),
-            )
-        ))
+        try:
+            from memory_engine import store_mem
+            asyncio.create_task(run_async(
+                lambda: store_mem(
+                    uid,
+                    body.message,
+                    imp=result.get("importance", 0.5),
+                    tag=result.get("emotion", {}).get("primary", "neutral"),
+                )
+            ))
+        except ImportError:
+            pass
 
-    return {
+    response_data = {
         "reply": result.get("reply", ""),
         "new_bond": result.get("new_bond", body.bond_level),
         "emotion": result.get("emotion", {"primary": "neutral"}),
         "tokens_remaining": remaining,
     }
+    if suggestion:
+        response_data["suggestion"] = suggestion
+
+    return response_data
 
 
 @app.post("/api/trial/start")
@@ -260,8 +292,8 @@ async def start_trial(
         lambda: db.table("profiles").update({
             "tier": "free_trial_14d",
             "trial_end": trial_end,
+            "trial_start": datetime.utcnow().isoformat(),
             "device_hash": device_hash,
-            "phone": body.phone,
         }).eq("user_id", uid).execute()
     )
 
@@ -280,7 +312,6 @@ async def sync_profile(uid: str = Depends(get_current_user)):
 @app.post("/webhooks/revenuecat")
 async def revenuecat_webhook(request: Request):
     """استقبال أحداث RevenueCat."""
-    # ✅ التحقق من توقيع RevenueCat
     if RC_SECRET:
         signature = request.headers.get("X-RevenueCat-Signature", "")
         body_bytes = await request.body()
@@ -334,7 +365,6 @@ async def delete_account(uid: str = Depends(get_current_user)):
     await run_async(
         lambda: db.table("profiles").delete().eq("user_id", uid).execute()
     )
-    # ✅ حذف المستخدم من Supabase Auth
     try:
         await run_async(lambda: db.auth.admin.delete_user(uid))
     except Exception as e:
@@ -346,7 +376,6 @@ async def delete_account(uid: str = Depends(get_current_user)):
 @app.post("/cron/cleanup")
 async def cron_cleanup(request: Request):
     """تنظيف البيانات القديمة — يُستدعى من cron job."""
-    # ✅ تحقق من مفتاح الـ cron
     cron_key = request.headers.get("X-Cron-Key", "")
     expected_key = os.getenv("CRON_SECRET_KEY", "")
     if expected_key and cron_key != expected_key:

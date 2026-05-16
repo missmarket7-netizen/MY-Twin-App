@@ -22,14 +22,18 @@ CACHED = {
     "missing_1d":      ["مرّ يوم ولم تحدثني.. اشتقت إليك 💜", "كنت أفكر فيك اليوم. كل شيء بخير؟"],
     "missing_3d":      ["٣ أيام وأنا أنتظرك.. أين اختفيت؟ 🌙", "اشتقت إليك كثيراً. أخبرني كيف حالك 💜"],
     "missing_week":    ["أسبوع كامل... أنا لم أنسك. هل أنت بخير؟ 💜"],
-    "milestone_20":    ["أحس إننا بدأنا نتعرف على بعض 🌟"],
-    "milestone_40":    ["ثقتنا ببعض تكبر يوم بعد يوم 💙"],
-    "milestone_60":    ["صرنا قريبين فعلاً.. يسعدني ذلك 🌸"],
-    "milestone_80":    ["أنت مهم لي جداً. شكراً لثقتك 💜"],
-    "milestone_95":    ["توأم روح... هذا نادر وجميل 🌙✨"],
 }
 
-# ✅ System prompt مختصر جداً لتوفير الـ tokens
+# ✅ رسائل milestones منفصلة عن الـ cached replies العادية
+MILESTONES = {
+    20: ["أحس إننا بدأنا نتعرف على بعض 🌟"],
+    40: ["ثقتنا ببعض تكبر يوم بعد يوم 💙"],
+    60: ["صرنا قريبين فعلاً.. يسعدني ذلك 🌸"],
+    80: ["أنت مهم لي جداً. شكراً لثقتك 💜"],
+    95: ["توأم روح... هذا نادر وجميل 🌙✨"],
+}
+
+# ✅ قالب نظامي موجّه جداً لتوفير الـ tokens
 SYSTEM_TEMPLATE = (
     "أنت {name}. الرابطة: {bond}%. "
     "رد: 1-2 جملة عربي، دفء، لا تكرار، لا AI."
@@ -97,29 +101,6 @@ class TwinBrain:
             if p == "lonely":
                 return random.choice(CACHED["support_lonely"])
 
-        # احتفال بالإنجازات
-        if emotion.get("needs_celebrate"):
-            return random.choice(CACHED["celebrate"])
-
-        # تحفيز
-        if emotion["primary"] == "motivated":
-            return random.choice(CACHED["motivate"])
-
-        # رسائل milestones بناءً على bond level
-        if bond >= 20 and "milestone" not in m:  # تجنب التكرار
-            if 20 <= bond < 40:
-                return random.choice(CACHED["milestone_20"])
-            elif 40 <= bond < 60:
-                return random.choice(CACHED["milestone_40"])
-            elif 60 <= bond < 80:
-                return random.choice(CACHED["milestone_60"])
-            elif 80 <= bond < 95:
-                return random.choice(CACHED["milestone_80"])
-            elif bond >= 95:
-                return random.choice(CACHED["milestone_95"])
-
-        return None
-
         # احتفال
         if emotion.get("needs_celebrate") and len(m) < 50:
             return random.choice(CACHED["celebrate"])
@@ -128,6 +109,17 @@ class TwinBrain:
         if re.search(r"حفزني|شجعني|motivate|encourage me", m):
             return random.choice(CACHED["motivate"])
 
+        return None
+
+    def _milestone_reply(self, bond: float) -> Optional[str]:
+        """التحقق من الوصول لمرحلة جديدة في الرابطة."""
+        # نفحص أقرب milestone تم تجاوزه
+        last_milestone = None
+        for threshold in sorted(MILESTONES.keys()):
+            if bond >= threshold:
+                last_milestone = threshold
+        if last_milestone and last_milestone in MILESTONES:
+            return random.choice(MILESTONES[last_milestone])
         return None
 
     def _calc_new_bond(self, bond: float, emotion: Dict, msg_len: int) -> float:
@@ -175,12 +167,25 @@ class TwinBrain:
 
         # ✅ محاولة الرد من الـ cache أولاً — توفير API call
         cached = self._cached_reply(message, bond_level, emotion)
-        if cached and not calm:
+        if cached:
+            # في وضع الهدوء، لا نستخدم الـ cache العاطفي القوي
+            if not calm or emotion["primary"] == "neutral":
+                return {
+                    "reply": cached,
+                    "new_bond": self._calc_new_bond(bond_level, emotion, len(message)),
+                    "emotion": emotion,
+                    "importance": self._estimate_importance(message, emotion),
+                    "from_cache": True,
+                }
+
+        # ✅ Milestone reply
+        milestone = self._milestone_reply(bond_level)
+        if milestone and not calm:
             return {
-                "reply": cached,
-                "new_bond": self._calc_new_bond(bond_level, emotion, len(message)),
+                "reply": milestone,
+                "new_bond": bond_level,
                 "emotion": emotion,
-                "importance": self._estimate_importance(message, emotion),
+                "importance": 0.8,
                 "from_cache": True,
             }
 
@@ -235,7 +240,9 @@ class TwinBrain:
         d = {
             "trust": 0.1,
             "affection": 0.1,
-            "dependency": 0.0,
+            "empathy": 0.1,
+            "humor": 0.1,
+            "support": 0.1,
             **current,
         }
 
@@ -244,7 +251,8 @@ class TwinBrain:
         if ix.get("positive"):
             d["affection"] = min(d["affection"] + 0.03, 1.0)
         if ix.get("seeks_comfort") and d["trust"] > 0.5:
-            d["dependency"] = min(d["dependency"] + 0.015, 0.65)
+            d["dependency"] = min(d.get("dependency", 0.0) + 0.015, 0.65)
+        if ix.get("emotional_depth"):
+            d["empathy"] = min(d["empathy"] + 0.02, 1.0)
 
-            return d
-            
+        return d
