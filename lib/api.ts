@@ -1,14 +1,12 @@
 import axios, { AxiosError } from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CryptoJS from 'crypto-js';
+import { RelationshipDims } from '../store/useTwinStore';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 
   (Platform.OS === 'android' 
       ? 'http://10.0.2.2:8000' 
-          : 'http://localhost:8000');
-
-const ENCRYPTION_KEY = 'your-secret-key'; // يجب وضعها في متغيرات البيئة
+      : 'http://localhost:8000');
 
 export const API = axios.create({
   baseURL: BASE_URL,
@@ -17,16 +15,6 @@ export const API = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-// تشفير البيانات الحساسة
-export const encryptData = (data: string) => {
-  return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
-};
-
-export const decryptData = (encrypted: string) => {
-  const bytes = CryptoJS.AES.decrypt(encrypted, ENCRYPTION_KEY);
-  return bytes.toString(CryptoJS.enc.Utf8);
-};
 
 // Token Management
 let _token = '';
@@ -68,48 +56,27 @@ API.interceptors.response.use(
   }
 );
 
-// ====================== Types ======================
-export interface ChatRequest {
-  message: string;
-  twin_name: string;
-  bond_level: number;
-  relationship_dims: any;
-  chat_history?: any[];
-  current_emotion?: string;
-  calm_mode?: boolean;
-  timestamp?: string;
-  message_count?: number;
-  user_context?: {
-    age?: number;
-    interests?: string[];
-    personality?: string;
-  };
-}
-
-export interface ChatResponse {
-  reply: string;
-  new_bond: number;
-  emotion?: {
-    primary: string;
-    intensity: number;
-    secondary?: string[];
-  };
-  suggested_action?: string;
-}
-
-// ====================== Main Functions ======================
-
-export const askTwin = async (payload: ChatRequest): Promise<ChatResponse> => {
+// ====================== Main Chat Function ======================
+// ✅ تستقبل RelationshipDims مباشرة – لا حاجة للتحويل
+export const askTwin = async (
+  message: string,
+  twinName: string,
+  bond: number,
+  dims: RelationshipDims,
+  calm: boolean = false
+) => {
   try {
-    const { data } = await API.post<ChatResponse>(
+    const { data } = await API.post(
       '/api/chat',
       {
-        ...payload,
-        calm_mode: payload.calm_mode ?? false,
+        message,
+        twin_name: twinName,
+        bond_level: bond,
+        relationship_dims: dims,
       },
       {
         headers: {
-          'X-Calm-Mode': String(payload.calm_mode ?? false),
+          'X-Calm-Mode': String(calm),
         },
       }
     );
@@ -126,7 +93,8 @@ export const askTwin = async (payload: ChatRequest): Promise<ChatResponse> => {
   }
 };
 
-// Functions إضافية مهمة للمستقبل
+// ====================== Other Functions ======================
+
 export const startTrial = async (email: string, phone: string, deviceId: string) => {
   const { data } = await API.post('/api/trial/start', {
     email,
@@ -136,12 +104,10 @@ export const startTrial = async (email: string, phone: string, deviceId: string)
   return data;
 };
 
-// لاحقاً: Voice Transcription API
 export const transcribeAudio = async (audioUri: string) => {
   // هيتم تنفيذه بعدين
 };
 
-// لاحقاً: Save Long-term Memory
 export const saveMemory = async (memory: any) => {
   return API.post('/api/memory/save', memory);
 };

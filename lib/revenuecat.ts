@@ -23,7 +23,7 @@ export const initRevenueCat = (userId: string) => {
   }
 };
 
-// ✅ جلب العروض المتاحة
+// ✅ جلب العرض الحالي (current offering)
 export const getOfferings = async (): Promise<PurchasesOffering | null> => {
   try {
     const offerings = await Purchases.getOfferings();
@@ -84,4 +84,10 @@ export const getTierFromCustomerInfo = (customerInfo: CustomerInfo): string => {
   if (entitlements['premium']) return 'premium';
   if (entitlements['free_trial_14d']) return 'free_trial_14d';
   return 'free';
+};
+
+// ✅ تحسين: جلب التصنيف الحالي للمستخدم مباشرة
+export const getCurrentTier = async (): Promise<string> => {
+  const customerInfo = await getCustomerInfo();
+  return customerInfo ? getTierFromCustomerInfo(customerInfo) : 'free';
 };
