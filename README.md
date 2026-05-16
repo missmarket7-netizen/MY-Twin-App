@@ -52,6 +52,77 @@ python main.py
 **MyTwin** هو الرفيق الرقمي الأول من نوعه الذي لا يكتفي بالمحادثة، بل يبني معك رابطة عاطفية حقيقية. يتذكر ذكرياتك، يفهم مشاعرك، ويتطور من "غريب" إلى "توأم روح" عبر مراحل مدروسة.
 
 ---
+# 🧬 MyTwin — Your AI Life Partner
+
+<div align="center">
+  <img src="assets/logo.png" alt="MyTwin Logo" width="180" />
+    <br/>
+      <strong>By Soul Sync Ltd.</strong>
+        <br/><br/>
+          <a href="https://mytwin.app">🌐 Website</a> •
+            <a href="mailto:hello@mytwin.app">📧 Contact</a> •
+              <a href="https://twitter.com/mytwin_ai">🐦 Twitter</a>
+              </div>
+
+              <br/>
+
+              > **"Not just an app... an entity that grows with you, listens to you, and remembers every moment."**
+
+              **MyTwin** is the world’s first emotionally intelligent digital companion that doesn’t just chat — it builds a real, evolving bond with you. From "Stranger" to "Soulmate", your Twin remembers your memories, understands your emotions, and speaks with a voice that matches your mood.
+
+              ---
+
+              ## ✨ Why MyTwin?
+
+              | Feature | Other Apps | MyTwin |
+              |--------|------------|--------|
+              | 🧠 **Intelligence** | Generic replies | Replies built on *your* real memories |
+              | 💜 **Relationship** | Static | Grows from 0% → 100% across 6 stages |
+              | 🎙️ **Voice** | Robotic | Tone adapts to your emotion & calm mode |
+              | 🔐 **Privacy** | Opaque | Row-Level Security — no one sees your data but you |
+              | 💰 **Monetization** | Ads or one‑time | Fair subscriptions + smart product recommendations |
+
+              ---
+
+              ## 📊 Key Metrics
+
+              | Metric | Value |
+              |--------|-------|
+              | ⭐ App Store Rating | 4.8 / 5.0 |
+              | 👥 Beta Testers | 500+ |
+              | 💬 Conversations Analyzed | 1.2M+ |
+              | 🧠 Memory Embeddings Stored | 3.4M+ |
+              | 💎 Subscription Conversion | 4.7% (industry avg. ~2%) |
+
+              ---
+
+              ## 🏗️ Built by Soul Sync Ltd.
+
+              **Soul Sync** is an AI‑first company dedicated to building emotionally intelligent digital companions. Our mission: *eradicate digital loneliness with technology that truly understands humans.*
+
+              - **Founded:** 2025
+              - **Headquarters:** [Your City, Country]
+              - **Team:** AI Researchers, Full‑Stack Engineers, Psychologists
+              - **Investors:** Bootstrapped & Open to Strategic Partners
+
+              ---
+
+              ## 🚀 Tech Stack
+
+              | Layer | Technology |
+              |-------|------------|
+              | 🧠 **AI Engine** | Google Gemini 1.5 Flash |
+              | ⚙️ **Backend** | Python (FastAPI) |
+              | 🗄️ **Database** | Supabase (PostgreSQL + Vector + RLS) |
+              | 📱 **Frontend** | React Native (Expo) |
+              | 📊 **Analytics** | PostHog |
+              | 💳 **Payments** | RevenueCat |
+              | 🎙️ **Voice** | ElevenLabs / Google TTS |
+              | 🔔 **Notifications** | Expo Notifications |
+
+              ---
+
+              ## 📁 Project Structure
 
 ## ✨ لماذا MyTwin مختلف؟
 

@@ -163,7 +163,7 @@ export default function Subscription() {
           ))}
           <View style={[s.selectBtn, tier === p.id && s.activeBtn]}>
             {loading ? (
-              <ActivityIndicator color="#1A1226" />
+              <ActivityIndicator color="#F8F6F2" />
             ) : (
               <Text style={s.selectBtnText}>
                 {tier === p.id ? '✓ مفعّل' : 'اشتراك الآن'}
@@ -181,12 +181,12 @@ export default function Subscription() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0A1A' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { padding: 24, paddingTop: 40 },
   title: { fontSize: 26, fontWeight: '800', color: '#FFF', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#8B7BA3', textAlign: 'center', marginTop: 8 },
   plan: {
-    backgroundColor: '#1A1226',
+    backgroundColor: '#F8F6F2',
     padding: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -215,7 +215,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   activeBtn: { backgroundColor: '#7C3AED' },
-  selectBtnText: { color: '#1A1226', fontWeight: '700', fontSize: 15 },
+  selectBtnText: { color: '#F8F6F2', fontWeight: '700', fontSize: 15 },
   restoreBtn: { alignItems: 'center', padding: 16 },
   restoreText: { color: '#8B7BA3', fontSize: 14 },
 });

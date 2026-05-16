@@ -6,26 +6,37 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildType": "development"
+      },
       "env": {
         "APP_VARIANT": "development"
       }
     },
     "preview": {
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "buildType": "simulator"
       },
       "env": {
         "APP_VARIANT": "preview"
       }
     },
     "production": {
+      "channel": "production",
+      "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
       },
       "ios": {
         "buildType": "archive"
       },
-      "autoIncrement": true,
       "env": {
         "APP_VARIANT": "production"
       }
