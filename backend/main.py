@@ -393,3 +393,7 @@ async def cron_cleanup(request: Request):
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "MyTwin API is running", "version": "5.3.0"}
+
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    return "OK"
