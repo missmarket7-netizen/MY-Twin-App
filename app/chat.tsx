@@ -171,7 +171,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#2D1B4D',
   },
-  twinName: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  twinName: { color: '#1A1226', fontSize: 16, fontWeight: '700' },
   bellBtn: { padding: 8 },
   list: { flex: 1 },
   bubble: {
@@ -192,8 +192,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3A2A5D',
   },
-  userText: { color: '#FFF', fontSize: 15, lineHeight: 22 },
-  twinText: { color: '#E0D0FF', fontSize: 15, lineHeight: 22 },
+  userText: { color: '#1A1226', fontSize: 15, lineHeight: 22 },
+  twinText: { color: '#1A1226', fontSize: 15, lineHeight: 22 },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -227,7 +227,7 @@ const s = StyleSheet.create({
   textInput: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    color: '#FFF',
+    color: '#1A1226',
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
@@ -246,5 +246,5 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendIcon: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
+  sendIcon: { color: '#1A1226', fontSize: 22, fontWeight: 'bold' },
 });

@@ -71,7 +71,7 @@ export default function Goals() {
           onChangeText={setDesc}
         />
         <TouchableOpacity style={styles.addBtn} onPress={addGoal}>
-          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>+</Text>
+          <Text style={{ color: '#1A1226', fontWeight: 'bold', fontSize: 18 }}>+</Text>
         </TouchableOpacity>
       </View>
 
@@ -108,9 +108,9 @@ export default function Goals() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF', padding: 20 },
-  header: { fontSize: 22, fontWeight: '700', color: '#FFF', marginBottom: 16 },
+  header: { fontSize: 22, fontWeight: '700', color: '#1A1226', marginBottom: 16 },
   inputRow: { flexDirection: 'row', marginBottom: 16, gap: 8 },
-  input: { flex: 1, backgroundColor: '#F8F6F2', color: '#FFF', padding: 10, borderRadius: 8 },
+  input: { flex: 1, backgroundColor: '#F8F6F2', color: '#1A1226', padding: 10, borderRadius: 8 },
   addBtn: {
     backgroundColor: '#E0AAFF',
     width: 44,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  goalTitle: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  goalTitle: { color: '#1A1226', fontWeight: '600', fontSize: 16 },
   desc: { color: '#8B7BA3', marginTop: 4 },
   progressBar: {
     height: 6,
@@ -141,6 +141,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: '100%', backgroundColor: '#E0AAFF' },
-  progressText: { color: '#D0B4E0', fontSize: 12, marginTop: 4 },
+  progressText: { color: '#1A1226', fontSize: 12, marginTop: 4 },
   updateBtn: { marginTop: 8 },
 });
