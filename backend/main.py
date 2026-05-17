@@ -13,7 +13,7 @@ from supabase import create_client, Client
 
 from twin_brain import TwinBrain
 from rate_limiter import limiter, rate_limit_exceeded_handler
-from limits import check_tok, BASE_TOK
+from token_limits import check_tok, BASE_TOK
 from cache import get as cache_get, set as cache_set
 
 # استيراد اختياري للميزات المتقدمة
@@ -144,7 +144,7 @@ async def health():
 
 @app.post("/api/chat")
 @limiter.limit("30/minute")
-async def chat(
+async def chat(request: Request, 
     body: ChatRequest,
     uid: str = Depends(get_current_user),
     x_calm_mode: str = Header(default="false"),

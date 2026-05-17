@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "MyTwin: توأمك الرقمي",
+    "name": "MyTwin",
     "slug": "mytwin-ai",
+    "scheme": "mytwin",
     "version": "5.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,7 +19,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.soulsync.mytwin",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة وتحليل المشاعر.",
+        "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة.",
         "NSLocationWhenInUseUsageDescription": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم."
       }
     },
@@ -32,8 +33,7 @@
       "permissions": [
         "RECORD_AUDIO",
         "VIBRATE",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -44,31 +44,13 @@
           "microphonePermission": "يحتاج التطبيق للميكروفون للمحادثات الصوتية."
         }
       ],
-      "expo-speech",
-      "expo-haptics",
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
           "color": "#5B4AE0"
         }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم.",
-          "locationWhenInUsePermission": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم."
-        }
-      ],
-      [
-        "sentry-expo",
-        {
-          "url": "https://sentry.io"
-        }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }
