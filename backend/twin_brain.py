@@ -3,7 +3,7 @@ import random
 import logging
 from typing import Optional, List, Dict
 
-import google.generativeai as genai
+from google import genai
 from memory_ranker import MemoryRanker
 
 logger = logging.getLogger(__name__)
