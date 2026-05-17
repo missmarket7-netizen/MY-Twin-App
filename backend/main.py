@@ -389,3 +389,7 @@ async def cron_cleanup(request: Request):
         .execute()
     )
     return {"status": "cleaned"}
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "MyTwin API is running", "version": "5.3.0"}
