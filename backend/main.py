@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
 from slowapi.errors import RateLimitExceeded
-import google.generativeai as genai
+from google import genai
 from supabase import create_client, Client
 
 from twin_brain import TwinBrain
