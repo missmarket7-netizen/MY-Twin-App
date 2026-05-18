@@ -1,78 +1,72 @@
-import { Stack } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
+import CustomDrawer from '../components/CustomDrawer';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
-import { router } from 'expo-router';
 import { useTwinStore } from '../store/useTwinStore';
 import { supabase } from '../lib/supabase';
 import { setToken } from '../lib/api';
 
 export default function Layout() {
-  const { setAuth } = useTwinStore();
+  const { setAuth, tier } = useTwinStore();
   const initialized = useRef(false);
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
-    // تحقق من الجلسة الحالية
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setAuth(session.user.id);
         setToken(session.access_token);
-
-        // تحقق إذا أتم الـ onboarding
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarded')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (profile?.onboarded) {
-          router.replace('/chat');
-        } else {
-          router.replace('/onboarding');
-        }
-      } else {
-        router.replace('/');
       }
     });
 
-    // تابع تغييرات الـ auth
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuth(session.user.id);
         setToken(session.access_token);
       } else {
         setAuth('');
         setToken('');
-        router.replace('/');
       }
     });
-
-    return () => listener.subscription.unsubscribe();
   }, []);
 
   return (
     <>
       <StatusBar style="light" />
-      <Stack
+      <Drawer drawerContent={(props) => <CustomDrawer {...props} />}
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#FFFFFF' },
-          animation: 'fade',
+          drawerStyle: { backgroundColor: '#1A1226', width: 300 },
+          drawerLabelStyle: { color: '#FFFFFF', fontSize: 16 },
+          drawerActiveBackgroundColor: '#2D1B4D',
         }}
       >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="chat" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="subscription" />
-        <Stack.Screen name="goals" />
-        <Stack.Screen name="mood" />
-        <Stack.Screen name="timeline" />
-        <Stack.Screen name="privacy" />
-      </Stack>
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen
+          name="index"
+          options={{ drawerLabel: 'الرئيسية', drawerItemStyle: { display: 'none' } }}
+        />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen name="login" options={{ drawerItemStyle: { display: 'none' } }} />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen
+          name="chat"
+          options={{ drawerLabel: '💬 المحادثات' }}
+        />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen
+          name="settings"
+          options={{ drawerLabel: '⚙️ الإعدادات' }}
+        />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen
+          name="subscription"
+          options={{
+            drawerLabel: tier === 'free' ? '⭐ ترقية' : '⭐ اشتراكي',
+          }}
+        />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen name="goals" options={{ drawerLabel: '🎯 أهدافي' }} />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen name="mood" options={{ drawerLabel: '📊 مزاجي' }} />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen name="timeline" options={{ drawerLabel: '📅 ذكرياتي' }} />
+        <Drawer drawerContent={(props) => <CustomDrawer {...props} />}.Screen name="privacy" options={{ drawerLabel: '🔒 الخصوصية' }} />
+      </Drawer>
     </>
   );
 }

@@ -30,12 +30,6 @@ npm run start:lan
 
 1. انتقل للمجلد `backend` وثبّت المتطلبات البايثون:
 
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
-
 2. تأكد أن الـ backend يعمل على `http://<HOST_IP>:8000`.
 
 ## ملاحظات ونصائح

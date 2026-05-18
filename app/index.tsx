@@ -1,35 +1,44 @@
 import { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import { router } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
 export default function SplashScreen() {
-  const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, tension: 10, friction: 2, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-    ]).start();
+    // تأثير ظهور ناعم
+    Animated.timing(opacityAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+
+    // بعد 2.5 ثانية، تحقق من الجلسة وانتقل للصفحة الصحيحة
+    const timeout = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/chat');
+      } else {
+        router.replace('/login');
+      }
+    }, 2500);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
     <View style={s.container}>
       <Animated.Image
         source={require('../assets/logo.png')}
-        style={[s.logo, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+        style={[s.logo, { opacity: opacityAnim }]}
         resizeMode="contain"
       />
-      <TouchableOpacity style={s.button} onPress={() => router.push('/login')}>
-        <Animated.Text style={[s.buttonText, { opacity: opacityAnim }]}>Get Started</Animated.Text>
-      </TouchableOpacity>
+      <Animated.Text style={[s.company, { opacity: opacityAnim }]}>
+        by Soul Sync
+      </Animated.Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 200, height: 200, marginBottom: 50 },
-  button: { backgroundColor: '#5B4AE0', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 12 },
-  buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  logo: { width: 240, height: 240, marginBottom: 30 },
+  company: { fontSize: 16, color: '#5B4AE0', fontWeight: '600', letterSpacing: 1 },
 });
