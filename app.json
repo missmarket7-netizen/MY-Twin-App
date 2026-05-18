@@ -20,7 +20,8 @@
       "bundleIdentifier": "com.soulsync.mytwin",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "يحتاج التطبيق للميكروفون للمحادثات الصوتية المباشرة.",
-        "NSLocationWhenInUseUsageDescription": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم."
+        "NSLocationWhenInUseUsageDescription": "يستخدم موقعك لتكييف تجربة التوأم الرقمي بناءً على الطقس والوقت من اليوم.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -33,7 +34,9 @@
       "permissions": [
         "RECORD_AUDIO",
         "VIBRATE",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "plugins": [
@@ -50,7 +53,22 @@
           "icon": "./assets/notification-icon.png",
           "color": "#5B4AE0"
         }
-      ]
-    ]
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "9b48a67f-2655-43e2-a8dd-9a47ecf7fcf8"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9b48a67f-2655-43e2-a8dd-9a47ecf7fcf8"
+    }
   }
 }
