@@ -53,7 +53,8 @@
           "color": "#5B4AE0"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {

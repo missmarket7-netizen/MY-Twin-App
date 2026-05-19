@@ -1,39 +1,72 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import { router } from 'expo-router';
-import LottieView from 'lottie-react-native';
+import { COLORS, FONTS } from '../utils/theme';
 
-export default function Splash() {
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.5);
+export default function SplashScreen() {
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const subTextOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    // تسلسل الحركات
+    Animated.sequence([
+      // المرحلة 1: ظهور الشعار مع تكبير
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 10,
+          friction: 2,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+      // المرحلة 2: ظهور النص "by Soul Sync"
+      Animated.timing(textOpacity, {
         toValue: 1,
-        duration: 2000,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
+      // المرحلة 3: ظهور رمز حقوق النشر
+      Animated.timing(subTextOpacity, {
         toValue: 1,
-        tension: 10,
-        friction: 3,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start();
 
-    setTimeout(() => {
-      router.replace('/');
+    // الانتقال التلقائي بعد 3 ثوانٍ
+    const timeout = setTimeout(() => {
+      router.replace('/login');
     }, 3000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.title}>MyTwin</Text>
-        <Text style={styles.subtitle}>توأمك الرقمي</Text>
-      </Animated.View>
+      <Animated.Image
+        source={require('../assets/logo.png')}
+        style={[
+          styles.logo,
+          {
+            transform: [{ scale: scaleAnim }],
+            opacity: opacityAnim,
+          },
+        ]}
+        resizeMode="contain"
+      />
+      <Animated.Text style={[styles.company, { opacity: textOpacity }]}>
+        by Soul Sync
+      </Animated.Text>
+      <Animated.Text style={[styles.copyright, { opacity: subTextOpacity }]}>
+        ©️ 2026
+      </Animated.Text>
     </View>
   );
 }
@@ -41,27 +74,24 @@ export default function Splash() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
   },
   logo: {
-    width: 150,
-    height: 150,
-    resizeMode: 'contain',
+    width: 200,
+    height: 200,
+    marginBottom: 24,
   },
-  title: {
-    fontSize: 32,
-    color: '#1A1226',
-    fontWeight: 'bold',
-    marginTop: 20,
+  company: {
+    fontSize: FONTS.subtitle,
+    fontWeight: '600',
+    color: COLORS.gold,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#1A1226',
-    marginTop: 10,
+  copyright: {
+    fontSize: FONTS.small,
+    color: COLORS.textSecondary,
   },
 });

@@ -13,7 +13,7 @@ export interface Message {
             support: number;
             }
 
-            export type Tier = 'free' | 'free_trial_14d' | 'premium_trial' | 'premium' | 'pro' | 'yearly';
+            export type Tier = 'free' | 'free_trial_14d' | 'premium_trial' | 'premium' | 'pro' | 'yearly' | 'plus';
             export type Theme = 'dark' | 'light';
 
             interface TwinStore {

@@ -1,8 +1,6 @@
-import {
-  View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Share
-} from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Modal, Alert } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTwinStore } from '../store/useTwinStore';
 import { askTwin } from '../lib/api';
@@ -11,240 +9,122 @@ import { track } from '../lib/analytics';
 import EmotionalAvatar from '../components/EmotionalAvatar';
 import BondTimeline from '../components/BondTimeline';
 import TypingIndicator from '../components/TypingIndicator';
+import { COLORS, FONTS } from '../utils/theme';
+import { startRecordingVoice, stopRecordingVoice, speakResponse } from '../utils/voice_engine';
+import { Plus, Mic, ArrowUp, Image, Moon, Target, Bell, BellOff, Crown } from 'lucide-react-native';
 
 export default function Chat() {
-  const {
-    twinName, bondLevel, relationshipDims,
-    chatHistory, addMessage, updateBond,
-    calmMode, toggleCalmMode, triggerHaptic,
-    userId,
-  } = useTwinStore();
-
+  const { twinName, bondLevel, relationshipDims, chatHistory, addMessage, updateBond, calmMode, toggleCalmMode, triggerHaptic, userId, tier } = useTwinStore();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [emotion, setEmotion] = useState('neutral');
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
-  }, [chatHistory]);
+  useEffect(() => { flatListRef.current?.scrollToEnd({ animated: true }); }, [chatHistory]);
 
-  const shareMemory = async () => {
-    const lastTwin = [...chatHistory].reverse().find(m => m.role === 'twin');
-    if (lastTwin) {
-      await Share.share({ message: `💬 ${lastTwin.content}` });
-    }
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      addMessage('user', `[مشاركة صورة]`);
-    }
-  };
-
-  const send = async () => {
-    const message = input.trim();
+  const send = async (messageText?: string) => {
+    const message = (messageText || input).trim();
     if (!message || loading) return;
-
-    triggerHaptic();
-    addMessage('user', message);
-    setInput('');
-    setLoading(true);
-
+    triggerHaptic(); addMessage('user', message); setInput(''); setLoading(true);
     try {
-      track('message_sent', { bond_level: bondLevel, calm_mode: calmMode });
-
-      // ✅ تمرير relationshipDims مباشرة بدون تحويل
-      const res = await askTwin(
-        message,
-        twinName,
-        bondLevel,
-        relationshipDims,
-        calmMode
-      );
-
-      addMessage('twin', res.reply);
-      updateBond(res.new_bond ?? bondLevel);
-      setEmotion(res?.emotion?.primary ?? 'neutral');
-
-      track('message_received', { emotion: res?.emotion?.primary });
-
-      if (userId) {
-        const { error } = await supabase.from('messages').insert([
-          { user_id: userId, sender: 'user', content: message },
-          { user_id: userId, sender: 'twin', content: res.reply },
-        ]);
-        if (error) console.log('Supabase insert error:', error.message);
-      }
-    } catch (e: any) {
-      const detail = e?.response?.data?.detail;
-      const errMsg = detail === 'token_limit'
-        ? 'وصلت للحد اليومي من الرسائل 💜 جرب غداً أو قم بالترقية'
-        : 'حدث خطأ... حاول مجدداً';
-      addMessage('twin', errMsg);
-    } finally {
-      setLoading(false);
-    }
+      const res = await askTwin(message, twinName, bondLevel, relationshipDims, calmMode);
+      addMessage('twin', res.reply); updateBond(res.new_bond ?? bondLevel); setEmotion(res?.emotion?.primary ?? 'neutral');
+      if (res.tts) speakResponse(res.reply, res.tts);
+    } catch { addMessage('twin', 'حدث خطأ...'); }
+    finally { setLoading(false); }
   };
+
+  const handleVoice = async () => { setShowPlusMenu(false); const started = await startRecordingVoice(); if (started) { addMessage('user', '🎙️ جاري التسجيل...'); setTimeout(async () => { const text = await stopRecordingVoice(); if (text) send(text); else addMessage('twin', 'لم أتمكن من سماعك.'); }, 5000); } else { Alert.alert('خطأ', 'تعذر الوصول للميكروفون.'); } };
+  const handleCamera = async () => { setShowPlusMenu(false); const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 1 }); if (!result.canceled) { addMessage('user', '[صورة]'); addMessage('twin', 'تحليل الصور قيد التطوير.'); } };
+  const handleDream = () => { setShowPlusMenu(false); setInput('حلمت البارحة... '); };
+  const handleGoal = () => { setShowPlusMenu(false); router.push('/goals'); };
+
+  const plusMenuItems = [
+    { icon: Mic, label: 'صوت', onPress: handleVoice },
+    { icon: Image, label: 'صورة', onPress: handleCamera },
+    { icon: Moon, label: 'حلم', onPress: handleDream },
+    { icon: Target, label: 'هدف', onPress: handleGoal },
+  ];
+
+  const stage = bondLevel >= 95 ? 'توأم روح' : bondLevel >= 80 ? 'ارتباط' : bondLevel >= 60 ? 'ثقة' : bondLevel >= 40 ? 'مقربين' : bondLevel >= 20 ? 'أصدقاء' : 'غرباء';
 
   return (
-    <SafeAreaView style={s.safe}>
-      <KeyboardAvoidingView
-        style={s.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={s.header}>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.header}>
           <EmotionalAvatar emotion={emotion} size={42} />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={s.twinName}>{twinName}</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.twinName}>{twinName}</Text>
             <BondTimeline />
           </View>
-          <TouchableOpacity onPress={toggleCalmMode} style={s.bellBtn}>
-            <Text style={{ fontSize: 20 }}>{calmMode ? '🔕' : '🔔'}</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={toggleCalmMode} style={styles.iconBtn}>
+              {calmMode ? <BellOff size={20} color={COLORS.textSecondary} /> : <Bell size={20} color={COLORS.textSecondary} />}
+            </TouchableOpacity>
+            {tier === 'free' && (
+              <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/subscription')}>
+                <Crown size={14} color={COLORS.white} style={{ marginRight: 4 }} />
+                <Text style={styles.upgradeText}>ترقية</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-
-        <FlatList
-          ref={flatListRef}
-          data={chatHistory}
-          keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item }) => (
-            <View style={[s.bubble, item.role === 'user' ? s.userBubble : s.twinBubble]}>
-              <Text style={item.role === 'user' ? s.userText : s.twinText}>
-                {item.content}
-              </Text>
-            </View>
-          )}
-          contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
-          style={s.list}
-        />
-
+        <FlatList ref={flatListRef} data={chatHistory} keyExtractor={(_, i) => i.toString()} contentContainerStyle={{ padding: 16 }} renderItem={({ item }) => ( <View style={[styles.bubble, item.role === 'user' ? styles.userBubble : styles.twinBubble]}> <Text style={item.role === 'user' ? styles.userText : styles.twinText}>{item.content}</Text> </View> )} />
         {loading && <TypingIndicator />}
-
-        <View style={s.inputRow}>
-          <TouchableOpacity onPress={shareMemory} style={s.shareButton}>
-            <Text style={s.shareIcon}>📤</Text>
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setShowPlusMenu(true)}>
+            <Plus size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={pickImage} style={s.imageButton}>
-            <Text style={s.imageIcon}>📷</Text>
+          <TextInput style={styles.textInput} value={input} onChangeText={setInput} placeholder="اكتب رسالتك..." placeholderTextColor={COLORS.textSecondary} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false} onSubmitEditing={() => send()} />
+          <TouchableOpacity style={styles.iconBtn} onPress={handleVoice}>
+            <Mic size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TextInput
-            style={s.textInput}
-            value={input}
-            onChangeText={setInput}
-            placeholder="اكتب رسالتك..."
-            placeholderTextColor="#8B7BA3"
-            multiline
-            maxLength={2000}
-            returnKeyType="send"
-            blurOnSubmit={false}
-            onSubmitEditing={send}
-          />
-          <TouchableOpacity
-            style={[s.sendButton, loading && { opacity: 0.5 }]}
-            onPress={send}
-            disabled={loading}
-            activeOpacity={0.7}
-          >
-            <Text style={s.sendIcon}>↑</Text>
+          <TouchableOpacity style={[styles.sendButton, loading && { opacity: 0.5 }]} onPress={() => send()} disabled={loading}>
+            <ArrowUp size={20} color={COLORS.white} />
           </TouchableOpacity>
         </View>
+        <Modal visible={showPlusMenu} transparent animationType="fade">
+          <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowPlusMenu(false)}>
+            <View style={styles.plusMenu}>
+              {plusMenuItems.map((item, i) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={i} style={styles.plusMenuItem} onPress={item.onPress}>
+                    <View style={styles.plusMenuIconBg}><IconComponent size={24} color={COLORS.primary} /></View>
+                    <Text style={styles.plusMenuLabel}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: COLORS.chatBg },
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F8F6F2',
-    borderBottomWidth: 1,
-    borderColor: '#2D1B4D',
-  },
-  twinName: { color: '#1A1226', fontSize: 16, fontWeight: '700' },
-  bellBtn: { padding: 8 },
-  list: { flex: 1 },
-  bubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 18,
-    marginBottom: 10,
-  },
-  userBubble: {
-    backgroundColor: '#7C3AED',
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
-  },
-  twinBubble: {
-    backgroundColor: '#F3F0FF',
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#3A2A5D',
-  },
-  userText: { color: '#1A1226', fontSize: 15, lineHeight: 22 },
-  twinText: { color: '#1A1226', fontSize: 15, lineHeight: 22 },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    paddingBottom: 16,
-    backgroundColor: '#F8F6F2',
-    borderTopWidth: 1,
-    borderColor: '#2D1B4D',
-    gap: 8,
-  },
-  imageButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#3A2A5D',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shareButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#5A4A7D',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  imageIcon: { fontSize: 18 },
-  shareIcon: { fontSize: 18 },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    color: '#1A1226',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderRadius: 24,
-    fontSize: 15,
-    maxHeight: 120,
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: '#3A2A5D',
-  },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendIcon: { color: '#1A1226', fontSize: 22, fontWeight: 'bold' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: COLORS.header, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  headerInfo: { flex: 1, marginLeft: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  twinName: { color: COLORS.text, fontSize: FONTS.subtitle, fontWeight: '700' },
+  iconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  upgradeBtn: { flexDirection: 'row', backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
+  upgradeText: { color: COLORS.white, fontWeight: '600', fontSize: FONTS.small },
+  bubble: { maxWidth: '80%', padding: 14, borderRadius: 18, marginBottom: 10 },
+  userBubble: { backgroundColor: COLORS.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  twinBubble: { backgroundColor: COLORS.card, alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: COLORS.border },
+  userText: { color: COLORS.white, fontSize: FONTS.body, lineHeight: 22 },
+  twinText: { color: COLORS.text, fontSize: FONTS.body, lineHeight: 22 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 8, backgroundColor: COLORS.header, borderTopWidth: 1, borderTopColor: COLORS.border, gap: 4 },
+  textInput: { flex: 1, backgroundColor: COLORS.white, color: COLORS.text, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, borderRadius: 20, fontSize: FONTS.body, maxHeight: 100, minHeight: 40, borderWidth: 1, borderColor: COLORS.border },
+  sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center' },
+  plusMenu: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 24 },
+  plusMenuItem: { alignItems: 'center', width: 70 },
+  plusMenuIconBg: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  plusMenuLabel: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center' },
 });
