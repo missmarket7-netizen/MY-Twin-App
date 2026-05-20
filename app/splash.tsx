@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import { router } from 'expo-router';
+import { supabase } from '../lib/supabase';
+import { useTwinStore } from '../store/useTwinStore';
 import { COLORS, FONTS } from '../utils/theme';
 
 export default function SplashScreen() {
@@ -8,6 +10,7 @@ export default function SplashScreen() {
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const subTextOpacity = useRef(new Animated.Value(0)).current;
+  const { setAuth } = useTwinStore();
 
   useEffect(() => {
     // تسلسل الحركات
@@ -26,13 +29,13 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-      // المرحلة 2: ظهور النص "by Soul Sync"
+      // المرحلة 2: ظهور "by Soul Sync"
       Animated.timing(textOpacity, {
         toValue: 1,
         duration: 400,
         useNativeDriver: true,
       }),
-      // المرحلة 3: ظهور رمز حقوق النشر
+      // المرحلة 3: ظهور رمز الحقوق
       Animated.timing(subTextOpacity, {
         toValue: 1,
         duration: 400,
@@ -40,9 +43,21 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // الانتقال التلقائي بعد 3 ثوانٍ
-    const timeout = setTimeout(() => {
-      router.replace('/login');
+    // التحقق من الجلسة بعد 3 ثوانٍ
+    const timeout = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setAuth(session.user.id);
+        // تحقق من إكمال الـ onboarding
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded')
+          .eq('user_id', session.user.id)
+          .single();
+        router.replace(profile?.onboarded ? '/chat' : '/onboarding');
+      } else {
+        router.replace('/login');
+      }
     }, 3000);
 
     return () => clearTimeout(timeout);
@@ -74,7 +89,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
