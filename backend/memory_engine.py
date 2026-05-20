@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 from supabase import create_client, Client
-from google import genai
+import google.generativeai as genai
 from cache import get, set, delete
 
 logger = logging.getLogger(__name__)

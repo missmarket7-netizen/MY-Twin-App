@@ -3,7 +3,7 @@ import os, re, random, logging, time
 from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
-from google import genai
+import google.generativeai as genai
 try: from memory_ranker import MemoryRanker; HAS_MEMORY_RANKER = True
 except ImportError: HAS_MEMORY_RANKER = False
 logger = logging.getLogger(__name__)
