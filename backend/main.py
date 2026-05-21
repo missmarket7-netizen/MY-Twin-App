@@ -176,3 +176,47 @@ async def predict_need(uid=Depends(get_user)):
 @app.get("/api/consciousness/desire")
 async def get_desire():
     return {"desire": consciousness.express_desire()}
+
+# ─── Consciousness Core ──────────────────────────────────────────────
+from consciousness_core import ConsciousnessCore
+consciousness = ConsciousnessCore(twin_name="MyTwin", gemini_key=GEMINI_KEY)
+
+@app.get("/api/consciousness/state")
+async def get_consciousness(uid=Depends(get_user)):
+    return consciousness.get_consciousness_state()
+
+@app.get("/api/consciousness/predict")
+async def predict_need(uid=Depends(get_user)):
+    return {"prediction": consciousness.predict_need(uid)}
+
+@app.get("/api/consciousness/desire")
+async def get_desire():
+    return {"desire": consciousness.express_desire()}
+
+@app.post("/api/twin/state/sync")
+async def sync_twin_state(uid=Depends(get_user)):
+    """مزامنة حالة التوأم من Supabase."""
+    state = await consciousness.load_state(uid)
+    return state or {"status": "no_state_yet"}
+
+# ─── Consciousness Core ──────────────────────────────────────────────
+from consciousness_core import ConsciousnessCore
+consciousness = ConsciousnessCore(twin_name="MyTwin", gemini_key=GEMINI_KEY)
+
+@app.get("/api/consciousness/state")
+async def get_consciousness(uid=Depends(get_user)):
+    return consciousness.get_consciousness_state()
+
+@app.get("/api/consciousness/predict")
+async def predict_need(uid=Depends(get_user)):
+    return {"prediction": consciousness.predict_need(uid)}
+
+@app.get("/api/consciousness/desire")
+async def get_desire():
+    return {"desire": consciousness.express_desire()}
+
+@app.post("/api/twin/state/sync")
+async def sync_twin_state(uid=Depends(get_user)):
+    """مزامنة حالة التوأم من Supabase."""
+    state = await consciousness.load_state(uid)
+    return state or {"status": "no_state_yet"}
